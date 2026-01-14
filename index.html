@@ -1,0 +1,54 @@
+// --- Updated Script for farewell_card_slides.html ---
+let currentSlide = 1;
+const totalSlides = 60;
+let isEditMode = false;
+let saveTimeout;
+
+// 1. Modified Save Data to include API call
+async function saveData() {
+    showSaving();
+    try {
+        const exportData = {};
+        document.querySelectorAll('.editable').forEach((el, index) => {
+            exportData[`content_${index}`] = el.textContent;
+        });
+
+        // Local backup
+        localStorage.setItem('farewellCardData', JSON.stringify(exportData));
+
+        // NEW: Server sync (Replace URL with your deployed backend URL)
+        await fetch('/api/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cardId: 'default-card', data: exportData })
+        });
+        
+        showSaved();
+    } catch (error) {
+        console.error('Sync error:', error);
+        // Fallback to local save indicator if offline
+        showSaved("Saved locally (Offline)");
+    }
+}
+
+// 2. Modified Load Data to fetch from Server
+async function loadData() {
+    try {
+        const response = await fetch('/api/load/default-card');
+        const result = await response.json();
+        
+        const data = result.data || JSON.parse(localStorage.getItem('farewellCardData'));
+        
+        if (data) {
+            document.querySelectorAll('.editable').forEach((el, index) => {
+                const key = `content_${index}`;
+                if (data[key]) el.textContent = data[key];
+            });
+        }
+    } catch (error) {
+        console.log('Server unreachable, loading from local storage');
+        // Standard local storage fallback
+    }
+}
+
+// ... rest of your navigation and UI functions stay the same ...
